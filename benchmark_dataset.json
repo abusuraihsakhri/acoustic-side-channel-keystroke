@@ -1,0 +1,31 @@
+{
+  "suite_name": "Acoustic Side-Channel Keystroke & ENF Cryptanalysis Benchmark Suite",
+  "system_slug": "acoustic-side-channel-keystroke",
+  "standard_reference": "Acoustic Cryptanalysis / ISO/IEC 17825 / ENF Electrical Forensics",
+  "benchmark_profiles": [
+    {
+      "user_id": "target_analyst_01",
+      "typing_sample": "the quick brown fox",
+      "expected_mean_iki_ms_range": [70.0, 150.0],
+      "expected_rhythm_regularity_min": 0.65,
+      "fingerprint_digraphs": ["th", "he", "qu", "br", "ow", "fo"]
+    },
+    {
+      "user_id": "operator_eu_grid",
+      "grid_frequency_hz": 50.0,
+      "expected_grid_standard": "EU_50Hz",
+      "harmonics_hz": [100.0, 150.0, 200.0]
+    },
+    {
+      "user_id": "operator_us_grid",
+      "grid_frequency_hz": 60.0,
+      "expected_grid_standard": "US_60Hz",
+      "harmonics_hz": [120.0, 180.0, 240.0]
+    },
+    {
+      "test_type": "tdoa_triangulation",
+      "delays_ms": [0.0, 0.0],
+      "expected_region": "keyboard_center"
+    }
+  ]
+}

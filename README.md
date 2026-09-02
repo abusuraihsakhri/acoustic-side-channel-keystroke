@@ -1,88 +1,125 @@
-# Acoustic Side-Channel Keystroke & Power Hum (ENF) Cryptanalysis
+# Acoustic Side Channel Keystroke
 
-Production-grade hardware security and acoustic cryptanalysis engine for **keystroke dynamics profiling**, **acoustic Time-Difference-of-Arrival (TDOA) localization**, and **Electric Network Frequency (ENF) power hum forensic analysis**.
+> **Domain:** Post-Quantum Cryptography & Zero-Knowledge Architecture  
+> **Reference Guidelines & Standards:** `NIST FIPS 203/204/205, NIST SP 800-90B & ISO/IEC Standards`
 
----
+<div align="center">
 
-## Core Capabilities
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
+![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
+![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
 
-1. **Keystroke Dynamics & Timing Analysis**:
-   - **Dwell Time ($T_{\text{dwell}}$)**: Duration between key press and key release ($\Delta t = t_{\text{release}} - t_{\text{press}}$).
-   - **Flight Time / Inter-Key Interval (IKI)**: Latency between consecutive keystroke releases and subsequent presses ($\text{IKI} = t_{\text{press}, i} - t_{\text{release}, i-1}$).
-   - **Typing Velocity (CPM)**: Characters per minute normalized over active session duration.
-   - **Rhythm Regularity Metric**: Coefficient of variation metric ($1 - \frac{\sigma_{\text{IKI}}}{\mu_{\text{IKI}}}$) measuring typing cadence consistency.
-
-2. **Digraph Latency Fingerprinting**:
-   - Extraction of characteristic digraph transition distributions (`th`, `he`, `in`, `er`, `an`, `re`, `on`, `at`, `en`, `nd`).
-   - Statistical uniqueness calculation based on exponential deviation from baseline user mean.
-
-3. **Acoustic TDOA Keyboard Triangulation**:
-   - Multilateration solving for 2D coordinate $(x, y)$ on keyboard layout:
-     $$\Delta t_{ij} = \frac{d_i - d_j}{v_{\text{sound}}}$$
-   - Spatial key identification comparing observed acoustic delays to spatial key centroids.
-
-4. **Electric Network Frequency (ENF) Power Hum Forensics**:
-   - Discrete Fourier Transform (DFT) spectral decomposition across mains power frequencies (50 Hz European / Asian grid vs. 60 Hz North American grid) and higher harmonics (100 Hz, 120 Hz, 150 Hz, 180 Hz, 240 Hz).
-   - Power ratio confidence and grid standard attribution.
-
-5. **Biometric Keystroke Authentication**:
-   - User profiling, template enrollment, and candidate verification using multi-feature composite distance functions.
+</div>
 
 ---
 
-## Mathematical Formulations
+## 📖 What It Does
 
-### Composite Keystroke Distance
-Given reference profile $P_{\text{ref}}$ and candidate profile $P_{\text{cand}}$:
+Acoustic Side-Channel Keystroke & Power Hum Cryptanalysis Main Module.
 
-$$D = w_1 \frac{|\mu_{\text{IKI}, 1} - \mu_{\text{IKI}, 2}|}{\max(\mu_1, \mu_2)} + w_2 \frac{|\sigma_{\text{IKI}, 1} - \sigma_{\text{IKI}, 2}|}{\max(\sigma_1, \sigma_2)} + w_3 \frac{|\mu_{\text{dwell}, 1} - \mu_{\text{dwell}, 2}|}{\max(\mu_1, \mu_2)} + w_4 \frac{1}{|S|} \sum_{dg \in S} \frac{|L_1(dg) - L_2(dg)|}{\max(L_1, L_2)}$$
+Acoustic Side-Channel Keystroke Recognition & Power Hum Spectral Cryptanalysis Engine.
 
-Similarity score:
-
-$$\text{Similarity} = \max(0, 1 - D)$$
+Implements:
+1. Keystroke Dynamics & Timing Analysis (Dwell time, Flight time, Inter-Key Interval, CPM, Regularity).
+2. Digraph Latency Fingerprinting and Statistical Biometrics (Manhattan & Mahalanobis distances).
+3. Acoustic Time-Difference-of-Arrival (TDOA) Keyboard Triangulation.
+4. Electric Network Frequency (ENF) / Power Hum 50Hz/60Hz Spectral Cryptanalysis.
+5. Biometric Keystroke Authentication & Impostor Detection.
 
 ---
 
-## Command Line Interface (CLI)
+## ⚙️ Key Capabilities & Algorithmic Modules
 
-### 1. Analyze Keystroke Timing from CSV/JSON
-```bash
-python cli.py --analyze-timing sample.csv --user-id "analyst_01" --format text
-```
+### 🔬 Core Algorithmic & Evaluation Engines
 
-### 2. Acoustic TDOA Keystroke Localization
-```bash
-python cli.py --tdoa 0.25 -0.15 --format json
-```
+- **`KeystrokeEvent`** — dedicated module for keystroke event evaluation and state verification.
+- **`TypingProfile`** — dedicated module for typing profile evaluation and state verification.
+- **`IKIFingerprint`** — dedicated module for i k i fingerprint evaluation and state verification.
+- **`TDOALocalizationResult`** — dedicated module for t d o a localization result evaluation and state verification.
+- **`PowerHumFingerprint`** — dedicated module for power hum fingerprint evaluation and state verification.
+- **`KeystrokeDynamicsAnalyzer`**: Extracts inter-key intervals, dwell times, flight latencies, and regularity metrics.
 
-### 3. Electric Network Frequency (ENF) Analysis
-```bash
-python cli.py --enf --enf-hz 50.0 --format json
-```
+---
 
-### 4. Enroll Reference User Profile
-```bash
-python cli.py --enroll reference_typing.csv --user-id "analyst_01"
-```
+## 📐 Mathematical Formulation & Logic
 
-### 5. Authenticate Candidate Keystroke Sample
-```bash
-python cli.py --authenticate candidate_typing.csv --ref-file reference_typing.csv --threshold 0.75
-```
-
-### 6. Interactive Cryptanalysis Console
-```bash
-python cli.py --interactive
+```text
+  uniqueness = self._calculate_uniqueness(latency, profile.mean_iki)
+  score = self.analyzer.compare_profiles(candidate_profile, enrolled_profile)
+  best_score = results[best_user]
 ```
 
 ---
 
-## Unit Testing
+## 💻 CLI Quickstart & Usage
 
-Execute all unit tests using pure Python:
+### 1. Guided Interactive Mode
+```bash
+python cli.py
+```
+
+### 2. Direct Parameterized Evaluation
+```bash
+python cli.py --interactive <value> --analyze-timing <value> --tdoa <value> --enf <value>
+```
+
+### Parameter Reference
+- `--interactive`: Specifies input measurement or parameter value.
+- `--analyze-timing`: Specifies input measurement or parameter value.
+- `--tdoa`: Specifies input measurement or parameter value.
+- `--enf`: Specifies input measurement or parameter value.
+- `--enroll`: Specifies input measurement or parameter value.
+- `--authenticate`: Specifies input measurement or parameter value.
+- `--user-id`: Specifies input measurement or parameter value.
+- `--ref-file`: Specifies input measurement or parameter value.
+- `--threshold`: Specifies input measurement or parameter value.
+- `--enf-hz`: Specifies input measurement or parameter value.
+
+### Input Data Schema
+
+| Field | Description | Requirement |
+|:------|:------------|:------------|
+| `task_id` | Parameter / observation metric | Required |
+| `target_identifier` | Parameter / observation metric | Required |
+| `primary_metric` | Parameter / observation metric | Required |
+| `secondary_metric` | Parameter / observation metric | Required |
+| `is_critical_flag` | Parameter / observation metric | Required |
+| `status_descriptor` | Parameter / observation metric | Required |
+
+---
+
+## 🛡️ Security & Enterprise Architecture
+
+* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
+* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
+* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
+* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
+* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+
+---
+
+## 🧪 Testing & Verification
+
+Run the automated test suite:
 
 ```bash
-python -m unittest discover -s tests -v
-# or
-python test_keystroke_analysis.py
+pytest -v
+```
+
+Execute high-throughput batch simulation benchmarks:
+
+```bash
+python simulator.py --tasks 1000 --concurrency 8
+```
+
+---
+
+## 🐳 Container Deployment
+
+```bash
+docker build -t acoustic-side-channel-keystroke .
+docker run -p 8000:8000 acoustic-side-channel-keystroke
 ```

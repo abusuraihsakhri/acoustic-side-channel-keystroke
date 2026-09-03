@@ -1,125 +1,125 @@
-# Acoustic Side Channel Keystroke
+# Acoustic Side-Channel Keystroke Recognition & Power Hum Cryptanalysis
 
-> **Domain:** Post-Quantum Cryptography & Zero-Knowledge Architecture  
-> **Reference Guidelines & Standards:** `NIST FIPS 203/204/205, NIST SP 800-90B & ISO/IEC Standards`
+A Python forensic acoustics and side-channel cryptanalysis library and CLI tool. Implements keystroke dynamics timing analysis, digraph latency biometrics, acoustic Time-Difference-of-Arrival (TDOA) keyboard triangulation, and Electric Network Frequency (ENF) 50Hz/60Hz spectral power hum analysis.
 
-<div align="center">
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
-
-</div>
+Requires Python standard library only (zero external runtime dependencies).
 
 ---
 
-## 📖 What It Does
+## Features
 
-Acoustic Side-Channel Keystroke & Power Hum Cryptanalysis Main Module.
-
-Acoustic Side-Channel Keystroke Recognition & Power Hum Spectral Cryptanalysis Engine.
-
-Implements:
-1. Keystroke Dynamics & Timing Analysis (Dwell time, Flight time, Inter-Key Interval, CPM, Regularity).
-2. Digraph Latency Fingerprinting and Statistical Biometrics (Manhattan & Mahalanobis distances).
-3. Acoustic Time-Difference-of-Arrival (TDOA) Keyboard Triangulation.
-4. Electric Network Frequency (ENF) / Power Hum 50Hz/60Hz Spectral Cryptanalysis.
-5. Biometric Keystroke Authentication & Impostor Detection.
+- **Keystroke Dynamics Analysis:** Computes inter-key intervals (IKI), key dwell times, flight times, typing speed in characters per minute (CPM), and typing rhythm regularity.
+- **Digraph Fingerprinting:** Profiles latency across character pairs (digraphs) and calculates statistical uniqueness scores against baseline typing speeds.
+- **Acoustic TDOA Keyboard Triangulation:** Multilaterates key impact positions $(x, y)$ on a physical keyboard surface from sub-millisecond microphone arrival time differences.
+- **Electric Network Frequency (ENF) Forensics:** Extracts 50Hz / 60Hz power grid hum and harmonic signatures to verify regional electrical grid standard (`EU_50Hz` vs. `US_60Hz`) and assess device audio timestamp fidelity.
+- **Biometric Authentication & Impostor Detection:** Matches candidate typing samples against enrolled reference profiles using normalized distance metrics and configurable match thresholds.
+- **Interactive Console & Batch CLI:** Wizard mode, batch timing profile extraction from CSV/JSON, TDOA multilateration, and automated synthetic/recorded ENF spectral checks.
 
 ---
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+## Installation & Requirements
 
-### 🔬 Core Algorithmic & Evaluation Engines
+- Python 3.10+ (tested on 3.10, 3.11, 3.12)
+- Zero external runtime dependencies. `pytest` is optional for running tests.
 
-- **`KeystrokeEvent`** — dedicated module for keystroke event evaluation and state verification.
-- **`TypingProfile`** — dedicated module for typing profile evaluation and state verification.
-- **`IKIFingerprint`** — dedicated module for i k i fingerprint evaluation and state verification.
-- **`TDOALocalizationResult`** — dedicated module for t d o a localization result evaluation and state verification.
-- **`PowerHumFingerprint`** — dedicated module for power hum fingerprint evaluation and state verification.
-- **`KeystrokeDynamicsAnalyzer`**: Extracts inter-key intervals, dwell times, flight latencies, and regularity metrics.
-
----
-
-## 📐 Mathematical Formulation & Logic
-
-```text
-  uniqueness = self._calculate_uniqueness(latency, profile.mean_iki)
-  score = self.analyzer.compare_profiles(candidate_profile, enrolled_profile)
-  best_score = results[best_user]
+```bash
+git clone https://github.com/abusuraihsakhri/acoustic-side-channel-keystroke.git
+cd acoustic-side-channel-keystroke
 ```
 
 ---
 
-## 💻 CLI Quickstart & Usage
+## CLI Usage
 
-### 1. Guided Interactive Mode
+### 1. Keystroke Timing Analysis
+Analyze typing events from CSV or JSON:
 ```bash
-python cli.py
+python cli.py -a sample.csv
+```
+Output as JSON:
+```bash
+python cli.py -a sample.csv --json
 ```
 
-### 2. Direct Parameterized Evaluation
+### 2. Acoustic TDOA Triangulation
+Estimate key location from microphone arrival delays (in milliseconds):
 ```bash
-python cli.py --interactive <value> --analyze-timing <value> --tdoa <value> --enf <value>
+python cli.py --tdoa 0.25 -0.15 --json
 ```
 
-### Parameter Reference
-- `--interactive`: Specifies input measurement or parameter value.
-- `--analyze-timing`: Specifies input measurement or parameter value.
-- `--tdoa`: Specifies input measurement or parameter value.
-- `--enf`: Specifies input measurement or parameter value.
-- `--enroll`: Specifies input measurement or parameter value.
-- `--authenticate`: Specifies input measurement or parameter value.
-- `--user-id`: Specifies input measurement or parameter value.
-- `--ref-file`: Specifies input measurement or parameter value.
-- `--threshold`: Specifies input measurement or parameter value.
-- `--enf-hz`: Specifies input measurement or parameter value.
+### 3. Electric Network Frequency (ENF) Analysis
+Analyze mains power hum frequency and grid standard:
+```bash
+# US 60 Hz grid
+python cli.py --enf --enf-hz 60 --json
 
-### Input Data Schema
+# EU 50 Hz grid
+python cli.py --enf --enf-hz 50 --json
+```
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Parameter / observation metric | Required |
-| `target_identifier` | Parameter / observation metric | Required |
-| `primary_metric` | Parameter / observation metric | Required |
-| `secondary_metric` | Parameter / observation metric | Required |
-| `is_critical_flag` | Parameter / observation metric | Required |
-| `status_descriptor` | Parameter / observation metric | Required |
+### 4. User Enrollment & Biometric Authentication
+Enroll reference typing profile:
+```bash
+python cli.py --enroll sample.csv --user-id alice --json
+```
+
+Authenticate candidate keystrokes against enrolled reference:
+```bash
+python cli.py --authenticate sample.csv --ref-file sample.csv --user-id alice --threshold 0.70 --json
+```
+
+### 5. Interactive Wizard Mode
+Launch the terminal cryptanalysis console:
+```bash
+python cli.py --interactive
+```
 
 ---
 
-## 🛡️ Security & Enterprise Architecture
+## Python API Quickstart
 
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+```python
+from keystroke_analysis import (
+    KeystrokeEvent,
+    KeystrokeDynamicsAnalyzer,
+    DigraphFingerprintBuilder,
+    TDOAKeyboardLocalizer,
+    PowerHumSpectralAnalyzer,
+)
+
+# 1. Analyze Keystroke Dynamics
+events = [
+    KeystrokeEvent(key_code="t", press_time_ms=0.0, release_time_ms=80.0),
+    KeystrokeEvent(key_code="e", press_time_ms=120.0, release_time_ms=200.0),
+    KeystrokeEvent(key_code="s", press_time_ms=240.0, release_time_ms=320.0),
+    KeystrokeEvent(key_code="t", press_time_ms=360.0, release_time_ms=440.0),
+]
+analyzer = KeystrokeDynamicsAnalyzer()
+profile = analyzer.extract_profile(events, "user1")
+print(f"Typing Speed: {profile.typing_speed_cpm} CPM, Mean IKI: {profile.mean_iki} ms")
+
+# 2. TDOA Keyboard Triangulation
+localizer = TDOAKeyboardLocalizer()
+result = localizer.triangulate([0.25, -0.15])
+print(f"Nearest key: {result.nearest_key} (x: {result.estimated_x_cm} cm, y: {result.estimated_y_cm} cm)")
+
+# 3. ENF Analysis
+import math
+sr = 44100
+samples = [0.5 * math.sin(2.0 * math.pi * 60.0 * i / sr) for i in range(sr)]
+enf_res = PowerHumSpectralAnalyzer().analyze(samples, sr)
+print(f"Grid Standard: {enf_res.grid_standard} ({enf_res.fundamental_freq_hz} Hz)")
+```
 
 ---
 
-## 🧪 Testing & Verification
+## Running Tests
 
-Run the automated test suite:
+Run unit tests via standard `unittest` or `pytest`:
 
 ```bash
+python test_keystroke_analysis.py
+# or
 pytest -v
 ```
 
-Execute high-throughput batch simulation benchmarks:
-
-```bash
-python simulator.py --tasks 1000 --concurrency 8
-```
-
----
-
-## 🐳 Container Deployment
-
-```bash
-docker build -t acoustic-side-channel-keystroke .
-docker run -p 8000:8000 acoustic-side-channel-keystroke
-```

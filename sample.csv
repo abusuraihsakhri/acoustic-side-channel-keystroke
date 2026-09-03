@@ -1,4 +1,9 @@
-task_id,target_identifier,primary_metric,secondary_metric,is_critical_flag,status_descriptor
-TASK-001,TARGET-01,28.4,14.2,True,DISCORDANT
-TASK-002,TARGET-02,12.0,4.1,False,NOMINAL
-TASK-003,TARGET-03,35.0,19.5,True,ANOMALY
+key_code,press_time_ms,release_time_ms,finger
+p,0.0,75.0,right_pinky
+a,120.0,195.0,left_pinky
+s,230.0,310.0,left_ring
+s,340.0,415.0,left_ring
+w,460.0,535.0,left_ring
+o,570.0,645.0,right_ring
+r,680.0,760.0,left_index
+d,790.0,865.0,left_middle

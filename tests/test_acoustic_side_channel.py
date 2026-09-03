@@ -391,6 +391,34 @@ class TestCLIAdvanced(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_cli_json_flag(self):
+        out = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            code = cli.main(["--tdoa", "0.25", "-0.15", "--json"])
+            self.assertEqual(code, 0)
+        finally:
+            sys.stdout = old_stdout
+
+        data = json.loads(out.getvalue())
+        self.assertIn("nearest_key", data)
+        self.assertIn("confidence", data)
+
+    def test_sample_csv_timing_analysis(self):
+        sample_file = PROJECT_ROOT / "sample.csv"
+        out = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            code = cli.main(["-a", str(sample_file), "--json"])
+            self.assertEqual(code, 0)
+        finally:
+            sys.stdout = old_stdout
+
+        data = json.loads(out.getvalue())
+        self.assertEqual(data["user_id"], "target_user")
+        self.assertGreater(data["typing_speed_cpm"], 0)
 
 
 if __name__ == "__main__":

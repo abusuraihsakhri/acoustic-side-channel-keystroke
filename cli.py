@@ -70,6 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--enf-hz", type=float, default=60.0, help="Target frequency for synthetic ENF signal test (default: 60.0 Hz).")
     parser.add_argument("--audio-file", metavar="FILE", help="Audio samples file (JSON list of floats) for ENF analysis.")
     parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format (default: text).")
+    parser.add_argument("--json", action="store_true", help="Output result as formatted JSON (shorthand for --format json).")
     parser.add_argument("--output", "-o", metavar="FILE", help="Output file to write results.")
 
     return parser
@@ -145,6 +146,9 @@ def run_interactive():
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.json:
+        args.format = "json"
 
     if args.interactive or (not args.analyze_timing and not args.tdoa and not args.enf and not args.enroll and not args.authenticate):
         if len(sys.argv) == 1 or args.interactive:

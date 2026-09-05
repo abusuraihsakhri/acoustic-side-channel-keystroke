@@ -19,12 +19,18 @@ Requires Python standard library only (zero external runtime dependencies).
 
 ## Installation & Requirements
 
-- Python 3.10+ (tested on 3.10, 3.11, 3.12)
+- Python 3.9+ (tested on 3.10, 3.11, 3.12)
 - Zero external runtime dependencies. `pytest` is optional for running tests.
 
 ```bash
 git clone https://github.com/abusuraihsakhri/acoustic-side-channel-keystroke.git
 cd acoustic-side-channel-keystroke
+```
+
+Install as a package (optional, enables the `acoustic-side-channel-keystroke` command):
+
+```bash
+pip install -e .
 ```
 
 ---
@@ -122,4 +128,13 @@ python test_keystroke_analysis.py
 # or
 pytest -v
 ```
+
+---
+
+## Security Features
+
+- **Path Traversal Protection:** All file inputs are validated to prevent directory traversal attacks. Only files within the working directory are accessible.
+- **File Type Whitelisting:** Only `.csv` and `.json` files are accepted for keystroke data input.
+- **Input Validation:** Numeric values are validated to reject NaN, infinity, and malformed data.
+- **Graceful Error Handling:** File I/O errors and parsing failures produce clear error messages without exposing internal details.
 

@@ -421,6 +421,99 @@ class TestCLIAdvanced(unittest.TestCase):
         self.assertGreater(data["typing_speed_cpm"], 0)
 
 
+class TestInputValidationAndSecurity(unittest.TestCase):
+    """Tests for path traversal protection, input validation, and error handling."""
+
+    def test_safe_float_valid(self):
+        from cli import _safe_float
+        self.assertEqual(_safe_float(42.0, "test"), 42.0)
+        self.assertEqual(_safe_float("3.14", "test"), 3.14)
+        self.assertEqual(_safe_float(0, "test"), 0.0)
+
+    def test_safe_float_rejects_nan(self):
+        from cli import _safe_float
+        with self.assertRaises(ValueError):
+            _safe_float(float('nan'), "test")
+
+    def test_safe_float_rejects_inf(self):
+        from cli import _safe_float
+        with self.assertRaises(ValueError):
+            _safe_float(float('inf'), "test")
+
+    def test_safe_float_rejects_invalid_string(self):
+        from cli import _safe_float
+        with self.assertRaises(ValueError):
+            _safe_float("not_a_number", "test")
+
+    def test_path_traversal_blocked(self):
+        from cli import _validate_file_path
+        # Paths containing ".." are rejected as traversal attempts
+        with self.assertRaises(ValueError):
+            _validate_file_path("../../../etc/passwd")
+        with self.assertRaises(ValueError):
+            _validate_file_path("data/../../secret.json")
+
+    def test_nonexistent_file_raises(self):
+        from cli import _validate_file_path
+        with self.assertRaises(FileNotFoundError):
+            _validate_file_path("nonexistent_file.csv")
+
+    def test_disallowed_extension_rejected(self):
+        from cli import _validate_file_path
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as f:
+            temp_path = f.name
+        try:
+            with self.assertRaises(ValueError):
+                _validate_file_path(temp_path)
+        finally:
+            os.remove(temp_path)
+
+    def test_malformed_csv_rejected(self):
+        import tempfile
+        csv_content = "key_code,press_time_ms,release_time_ms\na,not_a_number,100\n"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(csv_content)
+            temp_path = f.name
+        try:
+            from cli import load_keystrokes_from_file
+            with self.assertRaises(ValueError):
+                load_keystrokes_from_file(temp_path)
+        finally:
+            os.remove(temp_path)
+
+    def test_malformed_json_rejected(self):
+        import tempfile
+        json_content = "not valid json"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write(json_content)
+            temp_path = f.name
+        try:
+            from cli import load_keystrokes_from_file
+            with self.assertRaises(ValueError):
+                load_keystrokes_from_file(temp_path)
+        finally:
+            os.remove(temp_path)
+
+    def test_cli_error_exit_code(self):
+        """CLI should return exit code 1 on validation errors."""
+        import io
+        import sys
+        out = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            exit_code = cli.main(["-a", "nonexistent.csv"])
+            self.assertEqual(exit_code, 1)
+        finally:
+            sys.stdout = old_stdout
+
+    def test_package_entry_point_importable(self):
+        """The package entry point should be importable."""
+        from acoustic_side_channel.cli import main as pkg_main
+        self.assertTrue(callable(pkg_main))
+
+
 if __name__ == "__main__":
     unittest.main()
 

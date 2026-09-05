@@ -22,30 +22,90 @@ from keystroke_analysis import (
 )
 
 
-def load_keystrokes_from_file(filepath: str) -> List[KeystrokeEvent]:
+def _validate_file_path(filepath: str) -> Path:
+    """Validate file path for existence, extension, and directory traversal safety."""
+    # Reject obvious path traversal attempts before resolving
+    if ".." in filepath:
+        raise ValueError(f"Access denied: path traversal not allowed: {filepath}")
+
     path = Path(filepath)
+
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid file path: {filepath} ({e})")
+
+    if not resolved.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    if not resolved.is_file():
+        raise ValueError(f"Path is not a regular file: {filepath}")
+
+    # Whitelist allowed extensions to prevent arbitrary file execution
+    allowed_extensions = {".csv", ".json"}
+    if resolved.suffix.lower() not in allowed_extensions:
+        raise ValueError(
+            f"Unsupported file type '{resolved.suffix}'. "
+            f"Allowed: {', '.join(sorted(allowed_extensions))}"
+        )
+
+    return resolved
+
+
+def _safe_float(value, field_name: str = "value") -> float:
+    """Safely parse a float, rejecting NaN and infinity."""
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Invalid numeric value for {field_name}: {value!r} ({e})")
+    if math.isnan(result) or math.isinf(result):
+        raise ValueError(f"Invalid numeric value for {field_name}: {result} (NaN/Inf not allowed)")
+    return result
+
+
+def load_keystrokes_from_file(filepath: str) -> List[KeystrokeEvent]:
+    """Load keystroke events from a CSV or JSON file with validation."""
+    path = _validate_file_path(filepath)
     events: List[KeystrokeEvent] = []
 
-    if path.suffix.lower() == ".json":
-        data = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(data, list):
-            for item in data:
+    try:
+        if path.suffix.lower() == ".json":
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, list):
+                raise ValueError("JSON file must contain a list of keystroke objects")
+            for idx, item in enumerate(data):
+                if not isinstance(item, dict):
+                    raise ValueError(f"JSON item at index {idx} is not an object")
                 events.append(KeystrokeEvent(
                     key_code=str(item.get("key_code") or item.get("key", "")),
-                    press_time_ms=float(item.get("press_time_ms") or item.get("press", 0.0)),
-                    release_time_ms=float(item.get("release_time_ms") or item.get("release", 0.0)),
+                    press_time_ms=_safe_float(
+                        item.get("press_time_ms") if item.get("press_time_ms") is not None else item.get("press", 0.0),
+                        f"press_time_ms[{idx}]"
+                    ),
+                    release_time_ms=_safe_float(
+                        item.get("release_time_ms") if item.get("release_time_ms") is not None else item.get("release", 0.0),
+                        f"release_time_ms[{idx}]"
+                    ),
                     finger=str(item.get("finger", "")),
                 ))
-    else:
-        with open(path, mode="r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                events.append(KeystrokeEvent(
-                    key_code=str(row.get("key_code") or row.get("key") or ""),
-                    press_time_ms=float(row.get("press_time_ms") or row.get("press") or 0.0),
-                    release_time_ms=float(row.get("release_time_ms") or row.get("release") or 0.0),
-                    finger=str(row.get("finger") or ""),
-                ))
+        else:
+            with open(path, mode="r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row_idx, row in enumerate(reader):
+                    events.append(KeystrokeEvent(
+                        key_code=str(row.get("key_code") or row.get("key") or ""),
+                        press_time_ms=_safe_float(
+                            row.get("press_time_ms") or row.get("press") or 0.0,
+                            f"press_time_ms row {row_idx}"
+                        ),
+                        release_time_ms=_safe_float(
+                            row.get("release_time_ms") or row.get("release") or 0.0,
+                            f"release_time_ms row {row_idx}"
+                        ),
+                        finger=str(row.get("finger") or ""),
+                    ))
+    except (json.JSONDecodeError, csv.Error) as e:
+        raise ValueError(f"Failed to parse {path.suffix.upper()} file: {e}")
+
     return events
 
 
@@ -160,100 +220,107 @@ def main(argv=None) -> int:
     result_data = {}
     output_text = ""
 
-    if args.analyze_timing:
-        events = load_keystrokes_from_file(args.analyze_timing)
-        analyzer = KeystrokeDynamicsAnalyzer()
-        profile = analyzer.extract_profile(events, args.user_id)
-        builder = DigraphFingerprintBuilder()
-        fps = builder.build_fingerprints(profile)
+    try:
+        if args.analyze_timing:
+            events = load_keystrokes_from_file(args.analyze_timing)
+            analyzer = KeystrokeDynamicsAnalyzer()
+            profile = analyzer.extract_profile(events, args.user_id)
+            builder = DigraphFingerprintBuilder()
+            fps = builder.build_fingerprints(profile)
 
-        result_data = {
-            "user_id": profile.user_id,
-            "typing_speed_cpm": profile.typing_speed_cpm,
-            "mean_iki_ms": profile.mean_iki,
-            "std_iki_ms": profile.std_iki,
-            "mean_dwell_ms": profile.mean_dwell,
-            "std_dwell_ms": profile.std_dwell,
-            "rhythm_regularity": profile.rhythm_regularity,
-            "digraph_fingerprints": [fp.__dict__ for fp in fps],
-        }
+            result_data = {
+                "user_id": profile.user_id,
+                "typing_speed_cpm": profile.typing_speed_cpm,
+                "mean_iki_ms": profile.mean_iki,
+                "std_iki_ms": profile.std_iki,
+                "mean_dwell_ms": profile.mean_dwell,
+                "std_dwell_ms": profile.std_dwell,
+                "rhythm_regularity": profile.rhythm_regularity,
+                "digraph_fingerprints": [fp.__dict__ for fp in fps],
+            }
 
-        output_text = (
-            f"Keystroke Timing Analysis for User: {profile.user_id}\n"
-            f"  Speed:             {profile.typing_speed_cpm} CPM\n"
-            f"  Mean IKI:          {profile.mean_iki} ms (±{profile.std_iki} ms)\n"
-            f"  Mean Dwell Time:   {profile.mean_dwell} ms (±{profile.std_dwell} ms)\n"
-            f"  Rhythm Regularity: {profile.rhythm_regularity}\n"
-            f"  Digraph Fingerprints: {len(fps)} unique patterns extracted\n"
-        )
+            output_text = (
+                f"Keystroke Timing Analysis for User: {profile.user_id}\n"
+                f"  Speed:             {profile.typing_speed_cpm} CPM\n"
+                f"  Mean IKI:          {profile.mean_iki} ms (±{profile.std_iki} ms)\n"
+                f"  Mean Dwell Time:   {profile.mean_dwell} ms (±{profile.std_dwell} ms)\n"
+                f"  Rhythm Regularity: {profile.rhythm_regularity}\n"
+                f"  Digraph Fingerprints: {len(fps)} unique patterns extracted\n"
+            )
 
-    elif args.tdoa:
-        localizer = TDOAKeyboardLocalizer()
-        res = localizer.triangulate(args.tdoa)
-        result_data = res.__dict__
-        output_text = (
-            f"Acoustic Keystroke Triangulation (TDOA):\n"
-            f"  Estimated Position: ({res.estimated_x_cm} cm, {res.estimated_y_cm} cm)\n"
-            f"  Nearest Key:        '{res.nearest_key}'\n"
-            f"  Residual Error:     {res.residual_error_cm} cm\n"
-            f"  Confidence:         {res.confidence}\n"
-        )
+        elif args.tdoa:
+            localizer = TDOAKeyboardLocalizer()
+            res = localizer.triangulate(args.tdoa)
+            result_data = res.__dict__
+            output_text = (
+                f"Acoustic Keystroke Triangulation (TDOA):\n"
+                f"  Estimated Position: ({res.estimated_x_cm} cm, {res.estimated_y_cm} cm)\n"
+                f"  Nearest Key:        '{res.nearest_key}'\n"
+                f"  Residual Error:     {res.residual_error_cm} cm\n"
+                f"  Confidence:         {res.confidence}\n"
+            )
 
-    elif args.enf:
-        analyzer = PowerHumSpectralAnalyzer()
-        sr = 44100
-        if args.audio_file:
-            samples = json.loads(Path(args.audio_file).read_text(encoding="utf-8"))
-        else:
-            # Synthetic ENF test signal
-            samples = [
-                0.6 * math.sin(2.0 * math.pi * args.enf_hz * i / sr) +
-                0.25 * math.sin(2.0 * math.pi * (args.enf_hz * 2) * i / sr)
-                for i in range(sr)
-            ]
-        res = analyzer.analyze(samples, sr)
-        result_data = res.__dict__
-        output_text = (
-            f"Electric Network Frequency (ENF) Spectral Analysis:\n"
-            f"  Fundamental Freq:   {res.fundamental_freq_hz} Hz\n"
-            f"  Grid Standard:      {res.grid_standard}\n"
-            f"  Device Signature:   {res.device_signature}\n"
-            f"  Detected Harmonics: {res.harmonics}\n"
-            f"  Confidence:         {res.confidence}\n"
-        )
+        elif args.enf:
+            analyzer = PowerHumSpectralAnalyzer()
+            sr = 44100
+            if args.audio_file:
+                audio_path = _validate_file_path(args.audio_file)
+                samples = json.loads(audio_path.read_text(encoding="utf-8"))
+                if not isinstance(samples, list):
+                    raise ValueError("Audio file must contain a list of numeric samples")
+            else:
+                # Synthetic ENF test signal
+                samples = [
+                    0.6 * math.sin(2.0 * math.pi * args.enf_hz * i / sr) +
+                    0.25 * math.sin(2.0 * math.pi * (args.enf_hz * 2) * i / sr)
+                    for i in range(sr)
+                ]
+            res = analyzer.analyze(samples, sr)
+            result_data = res.__dict__
+            output_text = (
+                f"Electric Network Frequency (ENF) Spectral Analysis:\n"
+                f"  Fundamental Freq:   {res.fundamental_freq_hz} Hz\n"
+                f"  Grid Standard:      {res.grid_standard}\n"
+                f"  Device Signature:   {res.device_signature}\n"
+                f"  Detected Harmonics: {res.harmonics}\n"
+                f"  Confidence:         {res.confidence}\n"
+            )
 
-    elif args.enroll:
-        events = load_keystrokes_from_file(args.enroll)
-        engine = KeystrokeAuthenticationEngine()
-        profile = engine.enroll(args.user_id, events)
-        result_data = {
-            "enrolled_user": args.user_id,
-            "events_count": len(events),
-            "profile": profile.__dict__,
-        }
-        output_text = (
-            f"User Successfully Enrolled: {args.user_id}\n"
-            f"  Total Keystrokes:  {len(events)}\n"
-            f"  Typing Speed:      {profile.typing_speed_cpm} CPM\n"
-            f"  Mean IKI:          {profile.mean_iki} ms\n"
-        )
+        elif args.enroll:
+            events = load_keystrokes_from_file(args.enroll)
+            engine = KeystrokeAuthenticationEngine()
+            profile = engine.enroll(args.user_id, events)
+            result_data = {
+                "enrolled_user": args.user_id,
+                "events_count": len(events),
+                "profile": profile.__dict__,
+            }
+            output_text = (
+                f"User Successfully Enrolled: {args.user_id}\n"
+                f"  Total Keystrokes:  {len(events)}\n"
+                f"  Typing Speed:      {profile.typing_speed_cpm} CPM\n"
+                f"  Mean IKI:          {profile.mean_iki} ms\n"
+            )
 
-    elif args.authenticate:
-        if not args.ref_file:
-            print("Error: --ref-file required for candidate authentication.")
-            return 1
-        ref_events = load_keystrokes_from_file(args.ref_file)
-        cand_events = load_keystrokes_from_file(args.authenticate)
-        engine = KeystrokeAuthenticationEngine()
-        engine.enroll(args.user_id, ref_events)
-        auth_res = engine.authenticate(cand_events, threshold=args.threshold)
-        result_data = auth_res
-        output_text = (
-            f"Biometric Keystroke Authentication:\n"
-            f"  Authenticated:     {auth_res['authenticated']}\n"
-            f"  Best Match User:   {auth_res['best_match_user']}\n"
-            f"  Similarity Score:  {auth_res['best_match_score']} (Threshold: {auth_res['threshold']})\n"
-        )
+        elif args.authenticate:
+            if not args.ref_file:
+                print("Error: --ref-file required for candidate authentication.", file=sys.stderr)
+                return 1
+            ref_events = load_keystrokes_from_file(args.ref_file)
+            cand_events = load_keystrokes_from_file(args.authenticate)
+            engine = KeystrokeAuthenticationEngine()
+            engine.enroll(args.user_id, ref_events)
+            auth_res = engine.authenticate(cand_events, threshold=args.threshold)
+            result_data = auth_res
+            output_text = (
+                f"Biometric Keystroke Authentication:\n"
+                f"  Authenticated:     {auth_res['authenticated']}\n"
+                f"  Best Match User:   {auth_res['best_match_user']}\n"
+                f"  Similarity Score:  {auth_res['best_match_score']} (Threshold: {auth_res['threshold']})\n"
+            )
+    except (ValueError, FileNotFoundError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
     if args.format == "json":
         final_str = json.dumps(result_data, indent=2)
